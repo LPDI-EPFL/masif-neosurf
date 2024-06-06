@@ -51,6 +51,7 @@ database proteins. This includes surface triangulation, feature calculation,
 MaSIF-site interface prediction and computation of MaSIF-search descriptors.
 Every subunit of the target complexes is processed individually **and** together 
 with the drug.
+An already processed version of the dataset is provided on [Zenodo](https://zenodo.org/records/11509001).
 
 ### Targets
 
