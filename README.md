@@ -85,6 +85,7 @@ chmod +x ./preprocess_pdb.sh
 ## Computational binder recovery benchmark
 
 For more details on the binder recovery benchmark, please consult the relevant [README](computational_benchmark/README.md).
+The preprocessed dataset can be downloaded from [Zenodo](https://zenodo.org/records/11509001).
 
 ## Running a seed search
 
