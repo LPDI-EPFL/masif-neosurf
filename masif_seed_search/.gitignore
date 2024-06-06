@@ -1,0 +1,4 @@
+*.pyc
+data_preparation/*
+*.out
+

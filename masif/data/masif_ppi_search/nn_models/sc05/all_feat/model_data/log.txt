@@ -1,0 +1,15 @@
+Number of training positive shapes: 112598
+Number of validation positive shapes: 12988
+Number of testing positive shapes: 17562
+Number of training negative shapes: 112598
+Number of validation negative shapes: 12988
+Number of testing negative shapes: 17562
+Number of iterations: 1000000
+Validating and testing.
+ training_loss: 0.0
+Training ROC AUC: 0.8125
+ Training 1000 entry took 2.25s 
+Iteration 0 validation roc auc: 0.8153009644827203
+Mean validation positive score: 2.2734246253967285 Mean validation negative score: 3.159008502960205 Iteration 0 test roc auc: 0.7896156822427776
+Iteration time: nan validation time: 8.370824098587036 test time: 9.954982280731201
+>>> Saving model.

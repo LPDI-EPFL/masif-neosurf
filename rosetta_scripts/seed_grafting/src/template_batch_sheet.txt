@@ -1,0 +1,40 @@
+#!/bin/bash
+#SBATCH --nodes 1
+#SBATCH --qos=serial
+#SBATCH --ntasks-per-node 1
+#SBATCH --cpus-per-task 1
+#SBATCH --mem 6G
+#SBATCH --time 6:00:00
+#SBATCH --array=1-{seed_nr}
+#SBATCH --output=exelogs/out/splitfile.%A_%a.out
+#SBATCH --error=exelogs/err/splitfile.%A_%a.err
+
+# Depending on your HPC system it is recommended to uncomment/adapt the following lines to avoid too many submitted jobs
+
+#check_jobs () {{
+#    n_jobs=$(squeue -u username -h -t pending,running -r | wc -l)
+#    if (( $n_jobs < 9000 )) ; then
+#        return 0
+#    else
+#        return 1
+#    fi
+#}}
+#until check_jobs; do
+#        sleep $((120 + $RANDOM % 120))
+#        printf  "Too many jobs : waiting 2min \n"
+#    done
+
+MYID=$SLURM_ARRAY_TASK_ID
+COMPLEX=$(sed -n "$MYID"p ./prep/inlist.txt)
+python3 ./utils/extract_complex_sheet.py $COMPLEX $MYID
+python3 ./utils/crop_seed_sheet.py $MYID
+HOTSPOTS=$(python3 ./utils/find_hotspots.py $MYID)
+NFRAGS=$(python3 ./utils/find_nfrag.py $MYID)
+
+echo "Hotspots: "$HOTSPOTS
+echo "Number of fragments: "$NFRAGS
+mkdir -p out/seed_$MYID
+
+sbatch ./prep/grafting_submitter.slurm $MYID $HOTSPOTS $NFRAGS
+
+echo "RUN FINISHED"

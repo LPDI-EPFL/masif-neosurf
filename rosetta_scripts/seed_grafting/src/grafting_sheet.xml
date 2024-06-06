@@ -1,0 +1,141 @@
+<ROSETTASCRIPTS>
+	<SCOREFXNS>
+		<ScoreFunction name="sfxn" weights="ref2015" />
+	</SCOREFXNS>
+    
+    <RESIDUE_SELECTORS>
+        <Chain name="chainA" chains="A"/>
+        <Chain name="chainB" chains="B"/>
+        <Neighborhood name="interface_chA" selector="chainB" distance="10.0" include_focus_in_subset="false" />
+        <Neighborhood name="interface_chB" selector="chainA" distance="10.0" include_focus_in_subset="false" />
+        <Or name="chainAB" selectors="chainA,chainB"/>
+        <JumpUpstream name="target" jump="2"/>
+        <JumpDownstream name="design" jump="2"/>
+        <InterfaceByVector name="AB_interface" cb_dist_cut="11" nearby_atom_cut="5.5" vector_angle_cut="75" vector_dist_cut="10" grp1_selector="interface_chA" grp2_selector="interface_chB"/>
+    </RESIDUE_SELECTORS>
+        
+	<FILTERS>
+		<ShapeComplementarity name="sc" jump="2" verbose="1" min_sc="0.6" write_int_area="0" confidence="1" />
+        <Ddg name="ddG" scorefxn="sfxn" jump="2" repack="1" repeats="1" threshold="-20.0" confidence="1" />
+        <Sasa name="sasa" threshold="1000" hydrophobic="0" polar="0" jump="2" confidence="1" />
+        <ScoreType name="total_score" scorefxn="sfxn" score_type="total_score" threshold="0" confidence="1"/>
+        <BuriedUnsatHbonds2 name="buried_unsat_hbonds2" jump_number="2" cutoff="5"/>
+        <BuriedUnsatHbonds name="buried_unsat_hbonds" report_sc_heavy_atom_unsats="true" jump_number="2" scorefxn="sfxn" cutoff="2" ignore_surface_res="false" print_out_info_to_pdb="false" use_ddG_style="true" dalphaball_sasa="1" probe_radius="1.2" burial_cutoff="0.01" burial_cutoff_apo="0.2" confidence="1" />
+        <PeptideInternalHbondsFilter name="hbonds" hbond_cutoff="3" exclusion_distance="1000" sidechain_sidechain="true" backbone_sidechain="true" backbone_backbone="false"/>
+    </FILTERS>
+
+	<MOVERS>
+		<MotifGraft name="motif_grafting"
+            context_structure="./tmp/context_%%c%%.pdb" motif_structure="./tmp/cropseed_%%s%%.pdb"
+            RMSD_tolerance="1.5" NC_points_RMSD_tolerance="1"
+            clash_score_cutoff="12" clash_test_residue="GLY"
+            hotspots="%%h%%" combinatory_fragment_size_delta="%%f%%" max_fragment_replacement_size_delta="%%r%%"
+            full_motif_bb_alignment="1"  allow_independent_alignment_per_fragment="0"
+            graft_only_hotspots_by_replacement="1" only_allow_if_N_point_match_aa_identity="0"
+            only_allow_if_C_point_match_aa_identity="0" revert_graft_to_native_sequence="1" allow_repeat_same_graft_output="0" />
+		<MultiplePoseMover name="MPM_design" max_input_poses="3">
+		<SELECT>
+		</SELECT>
+			<ROSETTASCRIPTS>
+				<SCOREFXNS>
+                    <ScoreFunction name="sfxn_design" weights="ref2015" >
+                                <Reweight scoretype="approximate_buried_unsat_penalty" weight="10" />
+                                <Set approximate_buried_unsat_penalty_burial_probe_radius="2.3" />
+                                <Set approximate_buried_unsat_penalty_burial_atomic_depth="3.5" />
+                                <Set approximate_buried_unsat_penalty_hbond_energy_threshold="-0.5" />
+                                <Set approximate_buried_unsat_penalty_oversat_penalty="0" />
+                                <Reweight scoretype="res_type_constraint" weight="1.5" />
+                                <Reweight scoretype="aa_composition" weight="1.0" />
+                                <Reweight scoretype="coordinate_constraint" weight="1" />
+                    </ScoreFunction>
+			    </SCOREFXNS>
+
+                <RESIDUE_SELECTORS>
+                         <ResiduePDBInfoHasLabel name="hotspot_label" property="HOTSPOT" />
+                         <ResiduePDBInfoHasLabel name="scaffold_label" property="SCAFFOLD" />
+                         <Chain name="chainA" chains="A"/>
+                         <Chain name="chainB" chains="B"/>
+                         <Neighborhood name="interface_chA" selector="chainB" distance="10.0" include_focus_in_subset="false" />
+                         <Neighborhood name="interface_chB" selector="chainA" distance="10.0" include_focus_in_subset="false" />
+                         <InterfaceByVector name="AB_interface" cb_dist_cut="11" nearby_atom_cut="5.5" vector_angle_cut="75" vector_dist_cut="10" grp1_selector="interface_chA" grp2_selector="interface_chB"/> 
+                         <ResidueName name="mol" residue_name3="%%m%%"/>
+                         <!--<Index name="no_repack_res" resnums="%%x%%"/>-->
+                </RESIDUE_SELECTORS>
+
+				<TASKOPERATIONS>
+                         <IncludeCurrent name="current" />
+                         <OperateOnResidueSubset name="hotspot_onlyrepack" selector="hotspot_label">
+                            <PreventRepackingRLT/>
+                         </OperateOnResidueSubset>
+                         <ProteinInterfaceDesign name="PID" repack_chain1="1" repack_chain2="1" design_chain1="0" design_chain2="1" interface_distance_cutoff="8"/>
+                         <InitializeFromCommandline name="init" />
+                        <DesignRestrictions name="allowed_aas">
+                            <Action aas="ADEFGHIKLMNQRSTVWY" selector_logic="scaffold_label"/>
+                        </DesignRestrictions>
+                        <LimitAromaChi2 name="limitchi2" include_trp="true" chi2min="90" chi2max="110"/>
+                        <ExtraRotamersGeneric name="ex1_ex2" ex1="1" ex2aro="1" ex2="0" />
+                        <ProteinProteinInterfaceUpweighter name="upweight_interface" interface_weight="3" />
+                        <PruneBuriedUnsats name="pbu" allow_even_trades="false" atomic_depth_cutoff="3.5" minimum_hbond_energy="-0.5" />
+                        <!--<OperateOnResidueSubset name="norepack_spec" selector="no_repack_res">
+                            <PreventRepackingRLT/>
+                        </OperateOnResidueSubset>-->
+                        <OperateOnResidueSubset name="repack_mol" selector="mol">
+                            <RestrictToRepackingRLT/>
+                        </OperateOnResidueSubset>
+				</TASKOPERATIONS>
+
+				<FILTERS>
+                </FILTERS>
+
+				<MOVERS>
+                    <AddCompositionConstraintMover name="trp" selector="interface_chB">
+                        <Comp entry="PENALTY_DEFINITION;TYPE TRP;ABSOLUTE 0;PENALTIES 0 0 0 100;DELTA_START -1;DELTA_END 2;BEFORE_FUNCTION CONSTANT;AFTER_FUNCTION LINEAR;END_PENALTY_DEFINITION;" />
+                    </AddCompositionConstraintMover>
+                    <AddCompositionConstraintMover name="met" selector="interface_chB">
+                        <Comp entry="PENALTY_DEFINITION;TYPE MET;ABSOLUTE 0;PENALTIES 0 0 0 100;DELTA_START 0;DELTA_END 3;BEFORE_FUNCTION CONSTANT;AFTER_FUNCTION LINEAR;END_PENALTY_DEFINITION;" />
+                    </AddCompositionConstraintMover>
+					
+                    <AtomCoordinateCstMover name="cst_mol" coord_dev="1.5"  task_operations="repack_mol" sidechain="true"/>
+                    <FastDesign name="FastDesign" scorefxn="sfxn_design" repeats="1" task_operations="current,ex1_ex2,PID,pbu,hotspot_onlyrepack,allowed_aas,upweight_interface" batch="false" ramp_down_constraints="false" cartesian="false" bondangle="false" bondlength="false" min_type="dfpmin_armijo_nonmonotone" relaxscript="./src/no_ref.rosettacon2018.beta_nov16.txt" >
+                        <MoveMap name="MM" >
+                            <Chain number="1" chi="true" bb="false" />
+                            <Chain number="2" chi="true" bb="true" />
+                            <Jump number="1" setting="true" />
+                        </MoveMap>
+                    </FastDesign>
+                    <FastRelax name="fast-relax" scorefxn="sfxn_design" repeats="1" relaxscript="./src/no_ref.rosettacon2018.beta_nov16.txt" task_operations="current,limitchi2,ex1_ex2"/>
+				</MOVERS>
+
+				<APPLY_TO_POSE>
+				</APPLY_TO_POSE>
+
+				<PROTOCOLS>
+                    <Add mover_name="trp" />
+                    <Add mover_name="met" />
+                    <Add mover_name="cst_mol"/>
+					<Add mover_name="FastDesign" />
+                    <Add mover_name="FastDesign" />     
+                    <Add mover_name="fast-relax"/>
+				</PROTOCOLS>
+			</ROSETTASCRIPTS>
+		</MultiplePoseMover>
+		<MultiplePoseMover name="MPM_filters" max_input_poses="2">
+			<SELECT>
+				<AndSelector>
+                    <Filter filter="sc" />
+                    <Filter filter="ddG" />
+                    <Filter filter="sasa" />
+                    <Filter filter="total_score" />
+                    <Filter filter="buried_unsat_hbonds" />
+                    <Filter filter="buried_unsat_hbonds2" />
+                    <Filter filter="hbonds" />
+				</AndSelector>
+			</SELECT>
+		</MultiplePoseMover>
+	</MOVERS>
+    <PROTOCOLS >
+	    <Add mover_name="motif_grafting" />
+	    <Add mover_name="MPM_design" />
+	    <Add mover_name="MPM_filters" />
+	</PROTOCOLS>
+</ROSETTASCRIPTS>

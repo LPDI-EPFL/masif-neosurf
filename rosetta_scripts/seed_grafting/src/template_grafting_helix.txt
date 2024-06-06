@@ -1,0 +1,34 @@
+#!/bin/bash
+#SBATCH --nodes 1
+#SBATCH --qos=serial
+#SBATCH --ntasks-per-node 1
+#SBATCH --cpus-per-task 1
+#SBATCH --mem 7000
+#SBATCH --time 2:00:00
+#SBATCH --array=1-{scaff_list}
+#SBATCH --output=exelogs/out/splitfile.%A_%a.out
+#SBATCH --error=exelogs/err/splitfile.%A_%a.err
+
+in_dir={scaff_path}
+ROSETTA_BIN={rosetta_path}/main/source/bin/rosetta_scripts.linuxiccrelease
+
+MYID=$SLURM_ARRAY_TASK_ID
+UPPERID=$1
+HOTSPOTS=$2
+#FIX_POS=$(python3 ./utils/get_mol_targetres.py ./tmp/context_$1.pdb {mol_id})
+
+mkdir -p out/seed_$UPPERID/$MYID
+
+$ROSETTA_BIN -overwrite \
+         -ex1 -ex2 -ignore_zero_occupancy false \
+         -parser:protocol ./src/grafting_helix.xml\
+         -l $in_dir/splitfile_$MYID.split \
+         -ignore_unrecognized_res -nstruct 1 \
+         -out:path:all out/seed_$UPPERID/$MYID \
+         -parser:script_vars r=$HOTSPOTS s=$UPPERID c=$UPPERID m={mol_id} \
+         -no_nstruct_label \
+         -out:suffix _S$UPPERID \
+         -in:file:extra_res_fa ./prep/{mol_id}.params \
+         -holes:dalphaball {rosetta_path}/main/source/external/DAlpahBall/DAlphaBall.gcc
+
+echo "RUN FINISHED"

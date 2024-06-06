@@ -1,0 +1,44 @@
+<ROSETTASCRIPTS>
+  <SCOREFXNS>
+        <ScoreFunction name="sfxn" weights="ref2015">
+            <Reweight scoretype="coordinate_constraint" weight="1.0"/>
+        </ScoreFunction>
+  </SCOREFXNS>
+  <RESIDUE_SELECTORS>
+        <ResidueName name="mol" residue_name3="%%mol%%"/>
+        <Not name="target" selector="mol"/>
+        <Index name="norepack" resnums="%%fix%%"/>
+  </RESIDUE_SELECTORS>
+  <SIMPLE_METRICS>
+  </SIMPLE_METRICS>
+  <TASKOPERATIONS>
+        <IncludeCurrent name="current"/>
+        <LimitAromaChi2 name="limitchi2" include_trp="true" chi2min="90" chi2max="110"/>
+        <OperateOnResidueSubset name="repack_target" selector="target">
+            <RestrictToRepackingRLT/>
+        </OperateOnResidueSubset>     
+        <OperateOnResidueSubset name="repack_mol" selector="mol">
+            <RestrictToRepackingRLT/>
+        </OperateOnResidueSubset>
+        <OperateOnResidueSubset name="norepack_spec" selector="norepack">
+            <PreventRepackingRLT/>
+        </OperateOnResidueSubset>
+  </TASKOPERATIONS>
+  <FILTERS>
+  </FILTERS>
+  <MOVERS>
+        <VirtualRoot name="root" removable="false" remove="false" />
+        <AtomCoordinateCstMover name="cst_tar" coord_dev="1" task_operations="repack_target"  sidechain="false"/>
+        <AtomCoordinateCstMover name="cst_mol" coord_dev="1" task_operations="repack_mol" sidechain="true"/>
+        <FastRelax name="fast-relax" scorefxn="sfxn" repeats="1" task_operations="current,limitchi2,norepack_spec"/>
+  </MOVERS>
+  <APPLY_TO_POSE>
+  </APPLY_TO_POSE>
+  <PROTOCOLS>
+        <Add mover_name="root"/>
+        <Add mover_name="cst_tar"/>
+        <Add mover_name="cst_mol"/>
+        <Add mover_name="fast-relax" />
+  </PROTOCOLS>
+  <OUTPUT />
+</ROSETTASCRIPTS>

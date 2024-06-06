@@ -1,0 +1,2 @@
+model_checkpoint_path: "weights_seed_benchmark_12A_0123"
+all_model_checkpoint_paths: "weights_seed_benchmark_12A_0123"
