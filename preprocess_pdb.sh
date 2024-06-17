@@ -66,14 +66,14 @@ MASIF_SEED_SOURCE=$BASEDIR/masif_seed_search/source/
 MASIF_DATA=$BASEDIR/masif/data/
 MASIF_TARGETS_DIR=$BASEDIR/masif_seed_search/data/masif_targets
 
-export PYTHONPATH=$MASIF_SOURCE
+export PYTHONPATH=$PYTHONPATH:$MASIF_SOURCE
 export PYTHONPATH=$PYTHONPATH:$OUTDIR
+OUTDIR="$(realpath $OUTDIR)"
 export TMPDIR=$OUTDIR/tmp/
 
 
 # Move to output directory
 mkdir -p $OUTDIR
-OUTDIR="$(realpath $OUTDIR)"
 cd $OUTDIR
 
 # create directories
