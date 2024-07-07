@@ -7,14 +7,20 @@ from Bio.PDB import PDBParser, Selection
 from Bio.PDB.Polypeptide import PPBuilder, is_aa
 from Bio.PDB.StructureBuilder import StructureBuilder
 from Bio.PDB.SASA import ShrakeRupley
+import pandas as pd
 
 
-def get_score(pdb_file, score_type='score'):
+def parse_score_file(pdb_file):
     score_file = pdb_file.with_suffix('.score')
 
     with open(score_file, 'r') as f:
-        scores = {x.split(': ')[0]: x.split(': ')[1] for x in f.read().split(', ')}
+        content = {x.split(': ')[0]: x.split(': ')[1] for x in f.read().split(', ')}
 
+    return content
+
+
+def get_score(pdb_file, score_type='score'):
+    scores = parse_score_file(pdb_file)
     return float(scores[score_type])
 
 
@@ -207,3 +213,45 @@ def compute_sasa_values(pdb_file, target_chain, binder_chain, ligand_name, ligan
     out['ligand_sasa_per_target_buried_sasa'] = out['ligand_buried_sasa'] / out['target_buried_sasa']
 
     return out
+
+
+def parse_results_pd(result_dir):
+    results = []
+
+    target_dirs = [d for d in Path(result_dir).iterdir() if d.is_dir()]
+    for target_dir in tqdm(target_dirs):
+        if not target_dir.is_dir():
+            continue
+
+        target = target_dir.name
+
+        for site_dir in target_dir.glob("site_*"):
+
+            for chain_match in site_dir.iterdir():
+                if not chain_match.is_dir():
+                    continue
+
+                matches = list(chain_match.glob("[!.]*.pdb"))
+
+                if len(matches) < 1:
+                    continue
+
+                for match in matches:
+                    summary = parse_score_file(match)
+                    match_info = {
+                        'target': target,
+                        'target_path': Path(target_dir.resolve(), f'{target}.pdb'),
+                        'target_site': site_dir.name,
+                        'matched_protein': summary['name'],
+                        'matched_patch_id': int(summary['point id']),
+                        'matched_protein_path': match.resolve(),
+                        'score': float(summary['score']),  # NN score
+                        'desc_dist_score': float(summary['desc_dist_score']),
+                        'clashing_ca': int(summary['clashing_ca']),
+                        'clashing_heavy': int(summary['clashing_heavy']),
+                    }
+
+                    # append to results
+                    results.append(match_info)
+
+    return pd.DataFrame(results)
