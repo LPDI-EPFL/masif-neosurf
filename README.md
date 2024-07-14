@@ -12,6 +12,7 @@ Code repository for ["Targeting protein-ligand neosurfaces using a generalizable
 - [System requirements](#system-requirements)
 - [Installation with Docker](#installation-with-docker)
 - [Preprocess a PDB file](#preprocess-a-pdb-file)
+- [PyMOL plugin](#pymol-plugin)
 - [Computational binder recovery benchmark](#computational-binder-recovery-benchmark)
 - [Running a seed search](#running-a-seed-search)
 - [Running a seed refinement and grafting](#running-a-seed-refinement-and-grafting)
@@ -80,6 +81,15 @@ chmod +x ./preprocess_pdb.sh
 
 # without ligand
 ./preprocess_pdb.sh example/1a7x.pdb 1A7X_A -o example/output/
+```
+
+## PyMOL plugin
+
+The [PyMOL plugin](masif_pymol_plugin.py) can be used to visualize preprocessed surface files (.ply file extension).
+To install it, open the plugin manager in PyMOL, select `Install New Plugin -> Install from local file` and choose the `masif_pymol_plugin.py` file.
+Once installed you can load MaSIF surface files in PyMOL with the following command:
+```bash
+loadply 1ABC.ply
 ```
 
 ## Computational binder recovery benchmark
