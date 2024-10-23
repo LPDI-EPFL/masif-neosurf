@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 from Bio.PDB import PDBParser
 from Bio.PDB.Polypeptide import is_aa
+import pymesh
 
 
 basedir = Path(__file__).absolute().parent.parent
@@ -31,7 +32,7 @@ params['top_seed_dir'] = "{database}"
 params['masif_target_root'] = "{target_dir}"
 
 # Output directory (target_name, target_site, matched_seed)
-params['out_dir_template'] = "{result_dir}/results/{{}}/"
+params['out_dir_template'] = "{result_dir}/{{}}/"
 
 # Target a specific residue.
 # cutoff: the maximum distance of the center of the patch to this residue.
@@ -116,10 +117,10 @@ if __name__ == "__main__":
     out_without_ligand = Path(output_dir, 'without_ligand')
 
     search_setups = [
-        {'output_dir': Path(out_with_ligand, 'search_params_targets'), 'database': targets_without_ligands, 'target_dir': targets_with_ligands, 'result_dir': out_with_ligand},
-        {'output_dir': Path(out_with_ligand, 'search_params_decoys'), 'database': decoys, 'target_dir': targets_with_ligands, 'result_dir': out_with_ligand},
-        {'output_dir': Path(out_without_ligand, 'search_params_targets'), 'database': targets_without_ligands, 'target_dir': targets_without_ligands, 'result_dir': out_without_ligand},
-        {'output_dir': Path(out_without_ligand, 'search_params_decoys'), 'database': decoys, 'target_dir': targets_without_ligands, 'result_dir': out_without_ligand},
+        {'output_dir': Path(out_with_ligand, 'search_params_targets'), 'database': targets_without_ligands, 'target_dir': targets_with_ligands, 'result_dir': Path(out_with_ligand, 'results_targets')},
+        {'output_dir': Path(out_with_ligand, 'search_params_decoys'), 'database': decoys, 'target_dir': targets_with_ligands, 'result_dir': Path(out_with_ligand, 'results_decoys')},
+        {'output_dir': Path(out_without_ligand, 'search_params_targets'), 'database': targets_without_ligands, 'target_dir': targets_without_ligands, 'result_dir': Path(out_without_ligand, 'results_targets')},
+        {'output_dir': Path(out_without_ligand, 'search_params_decoys'), 'database': decoys, 'target_dir': targets_without_ligands, 'result_dir': Path(out_without_ligand, 'results_decoys')},
     ]
 
     for i, setup in enumerate(search_setups):
@@ -197,6 +198,15 @@ if __name__ == "__main__":
                     
                     else:
                         raise NotImplementedError()
+
+                    # Make sure there are enough surface points in the selections area
+                    ply_file = Path(setup['target_dir'], f'output/all_feat_3l/pred_surfaces/{pdb_id}_{target_chains}.ply')
+                    surf_mesh = pymesh.load_mesh(str(ply_file))
+                    _dist = np.sqrt(np.sum((surf_mesh.vertices - np.array(target_atom_coord)[None, :])**2, axis=-1))
+                    within_cutoff = _dist < global_options['selection_cutoff']
+                    if np.sum(within_cutoff) < global_options['num_sites']:
+                        target_atom_coord = surf_mesh.vertices[np.argmin(_dist)].tolist()
+                        print("Not enough surface vertices in selection. Picking closest vertex as center point instead.")
 
                     options = {
                         'database': setup['database'],
