@@ -50,6 +50,9 @@ learning_obj = MaSIF_ppi_search(
     feat_mask=params["feat_mask"],
 )
 learning_obj.saver.restore(learning_obj.session, params["model_dir"] + "model")
+# from pdb import set_trace; set_trace()
+# print(learning_obj.session.run(learning_obj.mu_rho[0]))
+assert not np.any(np.isnan(learning_obj.session.run(learning_obj.mu_rho[0])))
 
 from masif_modules.train_ppi_search import compute_val_test_desc
 
@@ -86,7 +89,8 @@ for count, ppi_pair_id in enumerate(ppi_list):
 
     out_desc_dir = os.path.join(params["desc_dir"], ppi_pair_id)
     if not os.path.exists(os.path.join(out_desc_dir, 'p1_desc_straight.npy')):
-        os.mkdir(out_desc_dir)
+        if not os.path.exists(out_desc_dir):
+            os.mkdir(out_desc_dir)
 #    else:
 #        # Ignore this one as it was already computed.
 #        print('Ignoring descriptor computation for {} as it was already computed'.format(ppi_pair_id))
