@@ -39,9 +39,10 @@ https://models.rcsb.org/v1/6qtl/ligand?auth_seq_id=201&label_asym_id=J&encoding=
 
 ## Decoys
 
-The decoys are taken from a list of known PPIs without small molecules at the 
-interface. The full list is provided in 
-[`masif_ppi_search_benchmark_list.txt`](decoys/masif_ppi_search_benchmark_list.txt).
+We provide two sets of decoys which are taken from known PPIs without small molecules at the 
+interface
+- [`masif_ppi_search_benchmark_list.txt`](decoys/masif_ppi_search_benchmark_list.txt),
+- [`pdbbind_decoy_list.txt`](pdbbind_decoys/pdbbind_decoy_list.txt).
 
 
 ## Preparing the structures
@@ -71,14 +72,16 @@ The outputs will be written to `<processed_dir>`.
 
 ***NOTE:*** Two benchmark complexes (`7TE8`/`P0T_C` and `6ENG`/`BHW_B`) unfortunately required manual intervention 
 because the automatic protonation and mol2 conversion produced inconsistent results.
-We will provide further instructions or the processed files upon request.
+We include manually modified mol2 files in the `mol2_files` folder.
+These can be passed to the [processing script](../preprocess_pdb.sh) using the the `-m` flag.
+We are happy to provide further instructions or the processed files upon request.
 
 
 ### Decoys
 
 We provide a script that parallelises the downloading and preprocessing of the decoy proteins using slurm:
 ```bash
-sbatch decoys/prepare_decoys_parallel.slurm decoys/masif_ppi_search_benchmark_list.txt <decoy_dir>
+sbatch pdbbind_decoys/prepare_decoys_parallel.slurm pdbbind_decoys/pdbbind_decoy_list.txt <decoy_dir>
 ```
 All outputs will be saved in `<decoy_dir>`.
 
