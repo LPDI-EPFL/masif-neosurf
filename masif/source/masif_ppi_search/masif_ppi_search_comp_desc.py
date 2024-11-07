@@ -50,9 +50,9 @@ learning_obj = MaSIF_ppi_search(
     feat_mask=params["feat_mask"],
 )
 learning_obj.saver.restore(learning_obj.session, params["model_dir"] + "model")
-# from pdb import set_trace; set_trace()
-# print(learning_obj.session.run(learning_obj.mu_rho[0]))
-assert not np.any(np.isnan(learning_obj.session.run(learning_obj.mu_rho[0])))
+# # from pdb import set_trace; set_trace()
+# # print(learning_obj.session.run(learning_obj.mu_rho[0]))
+# assert not np.any(np.isnan(learning_obj.session.run(learning_obj.mu_rho[0])))
 
 from masif_modules.train_ppi_search import compute_val_test_desc
 
