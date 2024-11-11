@@ -571,14 +571,11 @@ def align_protein(name, \
     
     if len(top_scorers) > 0:
         source_outdir = os.path.join(site_outdir, '{}'.format(ppi_pair_id))
-        if not os.path.exists(source_outdir):
-            os.makedirs(source_outdir)
 
         # Load source structure 
         source_struct = parser.get_structure('{}_{}'.format(pdb,chain), os.path.join(params['seed_pdb_dir'],'{}_{}.pdb'.format(pdb,chain)))
         # Use the preexisting random rotation matrix that was applied to the patch.
         random_rotate_source_struct(source_struct, random_transformation)
-
 
         # Perform the transformation on the atoms
         for j in top_scorers:
@@ -592,6 +589,9 @@ def align_protein(name, \
 
             # Check if the number of clashes exceeds the number allowed. 
             if clashing_ca <= params['allowed_CA_clashes'] and clashing_total <= params['allowed_heavy_atom_clashes']:
+
+                if not os.path.exists(source_outdir):
+                    os.makedirs(source_outdir)
 
                 # Align and save the pdb + patch 
                 out_fn = source_outdir+'/{}_{}_{}'.format(pdb, chain, j)
