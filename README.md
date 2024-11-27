@@ -95,7 +95,7 @@ loadply 1ABC.ply
 ## Computational binder recovery benchmark
 
 For more details on the binder recovery benchmark, please consult the relevant [README](computational_benchmark/README.md).
-The preprocessed dataset can be downloaded from [Zenodo](https://zenodo.org/records/11509001).
+The preprocessed dataset can be downloaded from [Zenodo](https://zenodo.org/records/14225758).
 
 ## Running a seed search
 

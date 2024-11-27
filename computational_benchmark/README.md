@@ -41,8 +41,8 @@ https://models.rcsb.org/v1/6qtl/ligand?auth_seq_id=201&label_asym_id=J&encoding=
 
 We provide two sets of decoys which are taken from known PPIs without small molecules at the 
 interface
-- [`masif_ppi_search_benchmark_list.txt`](decoys/masif_ppi_search_benchmark_list.txt),
-- [`pdbbind_decoy_list.txt`](pdbbind_decoys/pdbbind_decoy_list.txt).
+- [`masif_ppi_search_benchmark_list.txt`](decoys/masif_ppi_search_benchmark_list.txt) (200 decoys),
+- [`pdbbind_decoy_list.txt`](pdbbind_decoys/pdbbind_decoy_list.txt) (8879 decoys).
 
 
 ## Preparing the structures
@@ -52,7 +52,8 @@ database proteins. This includes surface triangulation, feature calculation,
 MaSIF-site interface prediction and computation of MaSIF-search descriptors.
 Every subunit of the target complexes is processed individually **and** together 
 with the drug.
-An already processed version of the dataset is provided on [Zenodo](https://zenodo.org/records/11509001).
+An already processed version of the dataset (including the smaller decoy set) is provided on [Zenodo](https://zenodo.org/records/14225758) [[Download]](https://zenodo.org/records/14225758/files/masif-neosurf-benchmark-dataset.zip?download=1).
+For the larger decoy set we provide the input PDB files on [Zenodo](https://zenodo.org/records/14225758) [[Download]](https://zenodo.org/records/14225758/files/pdbbind_decoys.zip?download=1)
 
 ### Targets
 
