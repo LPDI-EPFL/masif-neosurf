@@ -1,7 +1,7 @@
 # _MaSIF-neosurf_ – Surface-based protein design for ternary complexes
 
 
-Code repository for ["Targeting protein--ligand neosurfaces with a generalizable deep learning tool"](citation.bib).
+Code repository for ["Targeting protein-ligand neosurfaces with a generalizable deep learning tool"](citation.bib).
 
 [![DOI](https://zenodo.org/badge/DOI/10.1038/s41586-024-08435-4.svg)](https://doi.org/10.1038/s41586-024-08435-4)
 
@@ -114,7 +114,7 @@ MaSIF-seed is released under an [Apache v2.0 license](LICENSE)
 ```
 @article{marchand2025,
   author={Marchand, Anthony and Buckley, Stephen and Schneuing, Arne and Pacesa, Martin and Elia, Maddalena and Gainza, Pablo and Elizarova, Evgenia and Neeser, Rebecca M. and Lee, Pao-Wan and Reymond, Luc and Miao, Yangyang and Scheller, Leo and Georgeon, Sandrine and Schmidt, Joseph and Schwaller, Philippe and Maerkl, Sebastian J. and Bronstein, Michael and Correia, Bruno E.},
-  title={Targeting protein--ligand neosurfaces with a generalizable deep learning tool},
+  title={Targeting protein-ligand neosurfaces with a generalizable deep learning tool},
   journal={Nature},
   year={2025},
   month={Jan},
