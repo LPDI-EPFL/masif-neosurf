@@ -39,9 +39,10 @@ https://models.rcsb.org/v1/6qtl/ligand?auth_seq_id=201&label_asym_id=J&encoding=
 
 ## Decoys
 
-The decoys are taken from a list of known PPIs without small molecules at the 
-interface. The full list is provided in 
-[`masif_ppi_search_benchmark_list.txt`](decoys/masif_ppi_search_benchmark_list.txt).
+We provide two sets of decoys which are taken from known PPIs without small molecules at the 
+interface
+- [`masif_ppi_search_benchmark_list.txt`](decoys/masif_ppi_search_benchmark_list.txt) (200 decoys),
+- [`pdbbind_decoy_list.txt`](pdbbind_decoys/pdbbind_decoy_list.txt) (8879 decoys).
 
 
 ## Preparing the structures
@@ -51,7 +52,8 @@ database proteins. This includes surface triangulation, feature calculation,
 MaSIF-site interface prediction and computation of MaSIF-search descriptors.
 Every subunit of the target complexes is processed individually **and** together 
 with the drug.
-An already processed version of the dataset is provided on [Zenodo](https://zenodo.org/records/11509001).
+An already processed version of the dataset (including the smaller decoy set) is provided on [Zenodo](https://zenodo.org/records/14225758) [[Download]](https://zenodo.org/records/14225758/files/masif-neosurf-benchmark-dataset.zip?download=1).
+For the larger decoy set we provide the input PDB files on [Zenodo](https://zenodo.org/records/14225758) [[Download]](https://zenodo.org/records/14225758/files/pdbbind_decoys.zip?download=1)
 
 ### Targets
 
@@ -71,14 +73,16 @@ The outputs will be written to `<processed_dir>`.
 
 ***NOTE:*** Two benchmark complexes (`7TE8`/`P0T_C` and `6ENG`/`BHW_B`) unfortunately required manual intervention 
 because the automatic protonation and mol2 conversion produced inconsistent results.
-We will provide further instructions or the processed files upon request.
+We include manually modified mol2 files in the `mol2_files` folder.
+These can be passed to the [processing script](../preprocess_pdb.sh) using the the `-m` flag.
+We are happy to provide further instructions or the processed files upon request.
 
 
 ### Decoys
 
 We provide a script that parallelises the downloading and preprocessing of the decoy proteins using slurm:
 ```bash
-sbatch decoys/prepare_decoys_parallel.slurm decoys/masif_ppi_search_benchmark_list.txt <decoy_dir>
+sbatch pdbbind_decoys/prepare_decoys_parallel.slurm pdbbind_decoys/pdbbind_decoy_list.txt <decoy_dir>
 ```
 All outputs will be saved in `<decoy_dir>`.
 

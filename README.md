@@ -1,9 +1,9 @@
 # _MaSIF-neosurf_ – Surface-based protein design for ternary complexes
 
 
-Code repository for ["Targeting protein-ligand neosurfaces using a generalizable deep learning approach"](citation.bib).
+Code repository for ["Targeting protein-ligand neosurfaces with a generalizable deep learning tool"](citation.bib).
 
-[![bioRxiv shield](https://img.shields.io/badge/bioRxiv-1709.01233-green.svg?style=flat)](https://www.biorxiv.org/content/10.1101/2024.03.25.585721v1.abstract)
+[![DOI](https://zenodo.org/badge/DOI/10.1038/s41586-024-08435-4.svg)](https://doi.org/10.1038/s41586-024-08435-4)
 
 ## Table of Contents
 
@@ -95,7 +95,7 @@ loadply 1ABC.ply
 ## Computational binder recovery benchmark
 
 For more details on the binder recovery benchmark, please consult the relevant [README](computational_benchmark/README.md).
-The preprocessed dataset can be downloaded from [Zenodo](https://zenodo.org/records/11509001).
+The preprocessed dataset can be downloaded from [Zenodo](https://zenodo.org/records/14225758).
 
 ## Running a seed search
 
@@ -112,13 +112,15 @@ MaSIF-seed is released under an [Apache v2.0 license](LICENSE)
 ## Reference
 
 ```
-@article{marchand2024targeting,
-  title={Targeting protein-ligand neosurfaces using a generalizable deep learning approach},
-  author={Marchand, Anthony and Buckley, Stephen and Schneuing, Arne and Pacesa, Martin and Gainza, Pablo and Elizarova, Evgenia and Neeser, Rebecca Manuela and Lee, Pao-Wan and Reymond, Luc and Elia, Maddalena and Scheller, Leo and Georgeon, Sandrine and Schmidt, Joseph and Schwaller, Philippe and Maerkl, Sebastian Josef and Bronstein, Michael and Correia, Bruno Emmanuel},
-  journal={bioRxiv},
-  pages={2024--03},
-  year={2024},
-  publisher={Cold Spring Harbor Laboratory}
+@article{marchand2025,
+  author={Marchand, Anthony and Buckley, Stephen and Schneuing, Arne and Pacesa, Martin and Elia, Maddalena and Gainza, Pablo and Elizarova, Evgenia and Neeser, Rebecca M. and Lee, Pao-Wan and Reymond, Luc and Miao, Yangyang and Scheller, Leo and Georgeon, Sandrine and Schmidt, Joseph and Schwaller, Philippe and Maerkl, Sebastian J. and Bronstein, Michael and Correia, Bruno E.},
+  title={Targeting protein-ligand neosurfaces with a generalizable deep learning tool},
+  journal={Nature},
+  year={2025},
+  month={Jan},
+  day={15},
+  issn={1476-4687},
+  doi={10.1038/s41586-024-08435-4},
+  url={https://doi.org/10.1038/s41586-024-08435-4}
 }
-
 ```

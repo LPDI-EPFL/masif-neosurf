@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# clear environment variables
+unset OUTDIR
+unset LIGAND
+unset SDFFILE
+unset POSITIONAL_ARGS
+unset PDBFILE
+unset NAME_CHAIN
+unset MOL2FILE
+
 ### USER INPUT #################################################################################################
 
 while [[ $# -gt 0 ]]; do
@@ -16,6 +25,11 @@ while [[ $# -gt 0 ]]; do
       ;;
     -s|--sdf)
       SDFFILE="$(realpath $2)"
+      shift # past argument
+      shift # past value
+      ;;
+    -m|--mol2)
+      MOL2FILE="$(realpath $2)"
       shift # past argument
       shift # past value
       ;;
@@ -91,7 +105,7 @@ PPI_PAIR_ID=$NAME_CHAIN
 PDB_ID=$(echo $NAME_CHAIN| cut -d"_" -f1)
 CHAIN1=$(echo $NAME_CHAIN| cut -d"_" -f2)
 cp $PDBFILE data_preparation/00-raw_pdbs/$PDB_ID\.pdb
-python -W ignore $MASIF_SOURCE/data_preparation/01-pdb_extract_and_triangulate.py $PDB_ID\_$CHAIN1 $LIGAND $SDFFILE
+python -W ignore $MASIF_SOURCE/data_preparation/01-pdb_extract_and_triangulate.py $PDB_ID\_$CHAIN1 $LIGAND $SDFFILE $MOL2FILE
 return_code=$?
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import os
-import sys
+from argparse import ArgumentParser
 import shutil
 import importlib
 from pdb import set_trace
@@ -19,30 +19,34 @@ from default_config.masif_opts import masif_opts
 if __name__ == "__main__":
 
     # Inputs
-    custom_params_fn = sys.argv[1]
-    target_name = sys.argv[2]
-    binder_name = sys.argv[3]
-    target_point_coord = sys.argv[4]
-    target_point_coord = np.array(list(map(float, target_point_coord.split())))
+    parser = ArgumentParser()
+    parser.add_argument("-p", "--params_file", type=str, required=True)
+    parser.add_argument("-t", "--target", type=str, required=True)
+    parser.add_argument("-b", "--binder", type=str, required=True)
+    args = parser.parse_args()
+
+    custom_params_fn = args.params_file
+    target_name = args.target
+    binder_name = args.binder
 
     # Parameters 
     custom_params_obj = importlib.import_module(custom_params_fn, package=None)
     params = custom_params_obj.params
     # from score_params import params
 
-    params['target_surf_dir'] = os.path.join(params['top_target_dir'], masif_opts['ply_chain_dir'])
-    params['target_iface_dir'] = os.path.join(params['top_target_dir'], masif_opts['site']['out_pred_dir'])
-    params['target_ply_iface_dir'] = os.path.join(params['top_target_dir'], masif_opts['site']['out_surf_dir'])
-    params['target_pdb_dir'] = os.path.join(params['top_target_dir'], masif_opts['pdb_chain_dir'])
-    params['target_desc_dir'] = os.path.join(params['top_target_dir'], masif_opts['ppi_search']['desc_dir'])
-    params['target_precomp_dir'] = os.path.join(params['top_target_dir'], masif_opts['ppi_search']['masif_precomputation_dir'])
+    params['target_surf_dir'] = os.path.join(params['masif_target_root'], masif_opts['ply_chain_dir'])
+    params['target_iface_dir'] = os.path.join(params['masif_target_root'], masif_opts['site']['out_pred_dir'])
+    params['target_ply_iface_dir'] = os.path.join(params['masif_target_root'], masif_opts['site']['out_surf_dir'])
+    params['target_pdb_dir'] = os.path.join(params['masif_target_root'], masif_opts['pdb_chain_dir'])
+    params['target_desc_dir'] = os.path.join(params['masif_target_root'], masif_opts['ppi_search']['desc_dir'])
+    params['target_precomp_dir'] = os.path.join(params['masif_target_root'], masif_opts['ppi_search']['masif_precomputation_dir'])
 
-    params['binder_surf_dir'] = os.path.join(params['top_binder_dir'], masif_opts['ply_chain_dir'])
-    params['binder_iface_dir'] = os.path.join(params['top_binder_dir'], masif_opts['site']['out_pred_dir'])
-    params['binder_desc_dir'] = os.path.join(params['top_binder_dir'], masif_opts['ppi_search']['desc_dir'])
-    params['binder_precomp_dir'] = os.path.join(params['top_binder_dir'], masif_opts['ppi_search']['masif_precomputation_dir'])
-    params['binder_ply_iface_dir'] = os.path.join(params['top_binder_dir'], masif_opts['site']['out_surf_dir'])
-    params['binder_pdb_dir'] = os.path.join(params['top_binder_dir'], masif_opts['pdb_chain_dir'])
+    params['binder_surf_dir'] = os.path.join(params['top_seed_dir'], masif_opts['ply_chain_dir'])
+    params['binder_iface_dir'] = os.path.join(params['top_seed_dir'], masif_opts['site']['out_pred_dir'])
+    params['binder_desc_dir'] = os.path.join(params['top_seed_dir'], masif_opts['ppi_search']['desc_dir'])
+    params['binder_precomp_dir'] = os.path.join(params['top_seed_dir'], masif_opts['ppi_search']['masif_precomputation_dir'])
+    params['binder_ply_iface_dir'] = os.path.join(params['top_seed_dir'], masif_opts['site']['out_surf_dir'])
+    params['binder_pdb_dir'] = os.path.join(params['top_seed_dir'], masif_opts['pdb_chain_dir'])
 
 
     # Initialize scoring neural network
@@ -72,8 +76,9 @@ if __name__ == "__main__":
 
 
     # Define target patch
-    coord = np.array(target_point_coord)
-    target_cutoff = params['target_point_cutoff']
+    # coord = np.array(target_point_coord)
+    coord = np.array(params['target_point']['coord'])
+    target_cutoff = params['target_point']['cutoff']
     # find atom indices close to the target.
     dists = np.sqrt(np.sum(np.square(mymesh.vertices - coord), axis=1))
     neigh_indices = np.where(dists < target_cutoff)[0]

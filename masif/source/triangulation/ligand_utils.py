@@ -1,3 +1,4 @@
+import shutil
 from io import StringIO, BytesIO
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -52,7 +53,7 @@ def amide_to_single_bond(mol2_outfile):
         f.write("\n".join(mol2_new))
 
 
-def extract_ligand(pdb_file, ligand_name, ligand_chain, mol2_outfile, sdf_template=None):
+def extract_ligand(pdb_file, ligand_name, ligand_chain, mol2_outfile, sdf_template=None, patched_mol2_file=None):
     pdb = prody.parsePDB(pdb_file)
     ligand = pdb.select(f'chain {ligand_chain} and resname {ligand_name}')
 
@@ -76,13 +77,18 @@ def extract_ligand(pdb_file, ligand_name, ligand_chain, mol2_outfile, sdf_templa
             template = list(Chem.ForwardSDMolSupplier(sdf_stream, sanitize=True, removeHs=False))[0]
             rdmol = AllChem.AssignBondOrdersFromTemplate(template, rdmol)
 
-    obConversion = openbabel.OBConversion()
-    obConversion.SetInAndOutFormats("pdb", "mol2")
-    # obConversion.AddOption("a...")  # read options (preceded by 'a')
-    # obConversion.AddOption("xl")  # write options (preceded by 'x')
-    ob_mol = openbabel.OBMol()
-    obConversion.ReadString(ob_mol, out.getvalue())
-    obConversion.WriteFile(ob_mol, mol2_outfile)
+    if patched_mol2_file is not None:
+        print("[WARNING] Patched mol2 file provided. It is preferred to use the automatic PDB-to-mol2 conversion. "
+              "This option should only be used in cases where the default option fails or yields inconsistent results.")
+        shutil.copyfile(patched_mol2_file, mol2_outfile)
+    else:
+        obConversion = openbabel.OBConversion()
+        obConversion.SetInAndOutFormats("pdb", "mol2")
+        # obConversion.AddOption("a...")  # read options (preceded by 'a')
+        # obConversion.AddOption("xl")  # write options (preceded by 'x')
+        ob_mol = openbabel.OBMol()
+        obConversion.ReadString(ob_mol, out.getvalue())
+        obConversion.WriteFile(ob_mol, mol2_outfile)
 
     # remove amide bond type because it is not supported by PDB2PQR
     amide_to_single_bond(mol2_outfile)

@@ -24,6 +24,7 @@ from triangulation.computeAPBS import computeAPBS
 from triangulation.compute_normal import compute_normal
 from sklearn.neighbors import KDTree
 
+
 if len(sys.argv) <= 1: 
     print("Usage: {config} "+sys.argv[0]+" PDBID_A")
     print("A or AB are the chains to include in this surface.")
@@ -55,7 +56,13 @@ else:
     ligand_code, ligand_chain = None, None
     sdf_file = None
 
+
+mol2_patch = None
+if len(sys.argv) >= 5:
+    mol2_patch = sys.argv[4]
+
 if ligand_code is not None:
+    assert len(ligand_code) <= 3, "Only 3-letter ligand codes are supported."
     print("Including ligand {} in the surface.".format(ligand_code))
 
 
@@ -71,18 +78,13 @@ pdb_filename = protonated_file
 out_filename1 = tmp_dir+"/"+pdb_id+"_"+chain_ids1
 extractPDB(pdb_filename, out_filename1+".pdb", chain_ids1, ligand_code, ligand_chain)
 
-# Compute MSMS of surface w/hydrogens, 
-try:
-    vertices1, faces1, normals1, names1, areas1 = computeMSMS(out_filename1+".pdb",\
-        protonate=True, ligand_code=ligand_code)
-except Exception as e:
-    print(e)
-    set_trace()
+# Compute MSMS of surface w/hydrogens,
+vertices1, faces1, normals1, names1, areas1 = computeMSMS(out_filename1+".pdb", protonate=True, ligand_code=ligand_code)
 
 # Get and RDKit molecule object
 if ligand_code is not None and ligand_chain is not None:
     mol2_file = os.path.join(tmp_dir, "{}_{}.mol2".format(ligand_code, ligand_chain))
-    rdmol = extract_ligand(pdb_filename, ligand_code, ligand_chain, mol2_file, sdf_template=sdf_file)
+    rdmol = extract_ligand(pdb_filename, ligand_code, ligand_chain, mol2_file, sdf_template=sdf_file, patched_mol2_file=mol2_patch)
 else:
     mol2_file = None
     rdmol = None
@@ -101,7 +103,9 @@ faces2 = faces1
 
 # Fix the mesh.
 mesh = pymesh.form_mesh(vertices2, faces2)
+print(f"Fixing mesh...")
 regular_mesh = fix_mesh(mesh, masif_opts['mesh_res'])
+print(f"Fixmesh done!")
 
 # Compute the normals
 vertex_normal = compute_normal(regular_mesh.vertices, regular_mesh.faces)
@@ -117,7 +121,9 @@ if masif_opts['use_hphob']:
         vertex_hphobicity, masif_opts)
 
 if masif_opts['use_apbs']:
+    print(f"Computing APBS...")
     vertex_charges = computeAPBS(regular_mesh.vertices, out_filename1+".pdb", out_filename1, mol2_file)
+    print(f"APBS done!")
 
 iface = np.zeros(len(regular_mesh.vertices))
 if 'compute_iface' in masif_opts and masif_opts['compute_iface']:

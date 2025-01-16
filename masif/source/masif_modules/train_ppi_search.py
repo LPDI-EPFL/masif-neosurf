@@ -168,6 +168,16 @@ def compute_roc_auc(pos, neg):
     return metrics.roc_auc_score(labels, dist_pairs)
 
 
+class Logger:
+    def __init__(self, logfile):
+        self.logfile = logfile
+
+    def write(self, text):
+        with open(self.logfile, 'a') as f:
+            f.write(text)
+        print(text, flush=True)
+
+
 # Randomly pick
 def train_ppi_search(
     learning_obj,
@@ -197,7 +207,7 @@ def train_ppi_search(
 ):
 
     out_dir = params["model_dir"]
-    logfile = open(out_dir + "log.txt", "w")
+    logfile = Logger(out_dir + "log.txt")
     logfile.write(
         "Number of training positive shapes: {}\n".format(len(pos_training_idx))
     )
@@ -244,7 +254,7 @@ def train_ppi_search(
         32178,
     ]
 
-    tic = time.time()
+    train_start_time = time.time()
     for num_iter in range(num_iterations):
         # Read dataset for training.
         tic = time.time()
@@ -318,17 +328,19 @@ def train_ppi_search(
         list_training_loss.append(training_loss)
 
         if num_iter % num_iter_test == 0:
+            logfile.write("{} training iterations finished after {:.2f} seconds.\n".format(num_iter, time.time() - train_start_time))
+
             logfile.write("Validating and testing.\n ")
             roc_auc = 1 - compute_roc_auc(iter_pos_score, iter_neg_score)
             logfile.write("training_loss: {}\n".format(np.mean(list_training_loss)))
-            print("Approx Training ROC AUC: {}\n ".format(roc_auc))
-            print(
-                "Mean training positive score: {} ".format(
+            # print("Approx Training ROC AUC: {}\n ".format(roc_auc))
+            logfile.write(
+                "Mean training positive score: {} \n".format(
                     np.mean(1.0 / iter_pos_score)
                 )
             )
-            print(
-                "Mean training negative score: {} ".format(
+            logfile.write(
+                "Mean training negative score: {} \n".format(
                     np.mean(1.0 / iter_neg_score)
                 )
             )
@@ -340,9 +352,8 @@ def train_ppi_search(
 
             training_time_entry = time.time() - tic
             logfile.write(
-                "Training 1000 entry took {:.2f}s \n".format(training_time_entry)
+                "Training {} entries took {:.2f}s \n".format(batch_size * num_iter_test, training_time_entry)
             )
-            print("Training 1000 entries took {}".format(training_time_entry))
 
             tic = time.time()
             # Compute validation descriptors.
@@ -395,13 +406,12 @@ def train_ppi_search(
             logfile.write(
                 "Iteration {} validation roc auc: {}\n".format(num_iter, val_auc)
             )
-            print("Iteration {} validation roc auc: {}".format(num_iter, val_auc))
 
             logfile.write(
-                "Mean validation positive score: {} ".format(np.mean(pos_dists))
+                "Mean validation positive score: {} \n".format(np.mean(pos_dists))
             )
             logfile.write(
-                "Mean validation negative score: {} ".format(np.mean(neg_dists))
+                "Mean validation negative score: {} \n".format(np.mean(neg_dists))
             )
             # Compute TEST ROC AUC.
             tic = time.time()
@@ -451,20 +461,13 @@ def train_ppi_search(
                     np.mean(iter_time), val_time, test_time
                 )
             )
-            print("Iteration {} test roc auc: {}".format(num_iter, test_auc))
-            print(
-                "Iteration time: {} validation time: {} test time: {}".format(
-                    np.mean(iter_time), val_time, test_time
-                )
-            )
-            print("Mean test positive score: {} ".format(np.mean(pos_dists)))
-            print("Mean test negative score: {} ".format(np.mean(neg_dists)))
+            logfile.write("Mean test positive score: {} \n".format(np.mean(pos_dists)))
+            logfile.write("Mean test negative score: {} \n".format(np.mean(neg_dists)))
 
             tic = time.time()
 
             if val_auc > best_val_auc:
                 logfile.write(">>> Saving model.\n")
-                print(">>> Saving model.")
                 best_val_auc = val_auc
                 output_model = out_dir + "model"
                 learning_obj.saver.save(learning_obj.session, output_model)

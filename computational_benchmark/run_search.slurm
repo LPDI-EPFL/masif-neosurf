@@ -8,12 +8,8 @@
 #SBATCH --array=0-27
 #SBATCH --output=./logs/slurm_%A_%a.txt
 
-### DEBUG
-#SLURM_ARRAY_TASK_ID=0
-####
 
-BASEDIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-BASEDIR=$(realpath $BASEDIR/..)
+BASEDIR=$(realpath $SLURM_SUBMIT_DIR/..)
 
 # clean the environment
 unset PYTHONPATH

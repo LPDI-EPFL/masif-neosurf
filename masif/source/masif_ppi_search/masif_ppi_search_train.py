@@ -12,10 +12,12 @@ import importlib
 import sys
 from default_config.masif_opts import masif_opts
 
+
 # Apply mask to input_feat
 def mask_input_feat(input_feat, mask):
     mymask = np.where(np.array(mask) == 0.0)[0]
     return np.delete(input_feat, mymask, axis=2)
+
 
 """
 masif_ppi_search_train.py: Entry function to train the MaSIF-search neural network.
@@ -24,6 +26,30 @@ Released under an Apache License 2.0
 """
 
 params = masif_opts["ppi_search"]
+
+# Use custom parameters if provided
+custom_params_file = sys.argv[1]
+custom_params = importlib.import_module(custom_params_file, package=None)
+custom_params = custom_params.custom_params
+
+
+def replace_nested_params(base_dict, replace_dict):
+    for k, v in replace_dict.items():
+        if k in base_dict:
+            if isinstance(base_dict[k], dict):
+                assert isinstance(v, dict)
+                base_dict[k] = replace_nested_params(base_dict[k], v)
+            else:
+                print(f"Setting {k} to {v}.")
+                base_dict[k] = v
+        else:
+            print(f"Adding new key {k}={v}.")
+            base_dict[k] = v
+
+    return base_dict
+
+
+params = replace_nested_params(base_dict=params, replace_dict=custom_params)
 
 binder_rho_wrt_center = np.load(params["cache_dir"] + "/binder_rho_wrt_center.npy")
 binder_theta_wrt_center = np.load(params["cache_dir"] + "/binder_theta_wrt_center.npy")
@@ -49,6 +75,10 @@ neg_theta_wrt_center = np.load(params["cache_dir"] + "/neg_theta_wrt_center.npy"
 neg_input_feat = np.load(params["cache_dir"] + "/neg_input_feat.npy")
 neg_mask = np.load(params["cache_dir"] + "/neg_mask.npy")
 neg_input_feat = mask_input_feat(neg_input_feat, params["feat_mask"])
+
+assert not np.isnan(binder_input_feat).any()
+assert not np.isnan(pos_input_feat).any()
+assert not np.isnan(neg_input_feat).any()
 
 if "pids" not in params:
     params["pids"] = ["p1", "p2"]

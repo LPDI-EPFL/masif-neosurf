@@ -76,10 +76,13 @@ target_pcd_tree = cKDTree(np.array(target_atom_coords))
 # If a specific residue is selected, then go after that residue
 if 'target_residue' in params:
     # Use the tuple for biopython: (' ', resid, ' ')
-    target_resid = (' ', params['target_residue']['resid'], ' ')
     target_chain = params['target_residue']['chain']
     target_cutoff = params['target_residue']['cutoff']
     target_atom_id = params['target_residue']['atom_id']
+    target_resid = [x.id for x in target_struct[0][target_chain].get_residues() if x.id[1] == params['target_residue']['resid']]
+    assert len(target_resid) == 1, print(f"Target residue ID not unique: {target_resid}")
+    target_resid = target_resid[0]
+    print(f"Using residue: {target_resid}")
     coord = target_struct[0][target_chain][target_resid][target_atom_id].get_coord()
     # find atom indices close to the target.
     dists = np.sqrt(np.sum(np.square(mymesh.vertices - coord), axis=1))
@@ -117,13 +120,12 @@ else:
     site_ixs = [ix for ix,vix in enumerate(target_vertices)]
     site_vixs = target_vertices
 
-out_log = open('log.txt', 'w+')
 # Go through every selected site
 for site_ix, site_vix in zip(site_ixs,site_vixs):
-    out_log.write('Starting site {}\n'.format(site_vix))
+    print('Starting site {}\n'.format(site_vix))
     site_outdir = os.path.join(outdir, 'site_{}'.format(site_ix))
     if not os.path.exists(site_outdir):
-        os.makedirs(site_outdir)
+        os.makedirs(site_outdir, exist_ok=True)
     # Get the geodesic patch and descriptor patch for each target patch
     target_patch, target_patch_descs, target_patch_idx = \
                 get_patch_geo(target_pcd,target_coord,site_vix,\
@@ -162,7 +164,7 @@ for site_ix, site_vix in zip(site_ixs,site_vixs):
                     params
                     )
         if (ix+1) %1000 == 0:
-            print('So far, MaSIF ahs aligned {} fragments from {} proteins.'.format(count_matched_fragments,ix+1))
-        count_matched_fragments+= len(matched_dict[name])
+            print('So far, MaSIF has aligned {} fragments from {} proteins.'.format(count_matched_fragments,ix+1))
+        count_matched_fragments += len(matched_dict[name])
 
-
+print('Done!')
