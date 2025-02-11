@@ -48,7 +48,6 @@ if len(sys.argv) >= 3:
     if len(sys.argv) >= 4:
         sdf_file = sys.argv[3]
     else:
-        print("No SDF file provided. Connectivity will be inferred from the PDB.")
         sdf_file = None
 
 # Without ligand

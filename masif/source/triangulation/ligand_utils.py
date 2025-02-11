@@ -1,11 +1,16 @@
 import shutil
+from pathlib import Path
 from io import StringIO, BytesIO
+import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.AllChem import AssignBondOrdersFromTemplate
 from openbabel import openbabel
 import prody
 prody.confProDy(verbosity='none')
+
+masif_dir = Path(__file__).parent.parent.parent.resolve()
+ligand_expo = np.load(Path(masif_dir, 'data', 'masif_neosurf', 'pdb_ligand_expo.npy'), allow_pickle=True).item()
 
 
 def neutralize_atoms(mol):
@@ -61,21 +66,32 @@ def extract_ligand(pdb_file, ligand_name, ligand_chain, mol2_outfile, sdf_templa
     prody.writePDBStream(out, ligand)
     rdmol = AllChem.MolFromPDBBlock(out.getvalue(), sanitize=True, removeHs=False)
 
-    if sdf_template is not None:
-        template = Chem.SDMolSupplier(sdf_template)[0]
-        template = Chem.AddHs(template)
-        try:
+    try:
+        if sdf_template is not None:
+            template = Chem.SDMolSupplier(sdf_template)[0]
+            template = Chem.AddHs(template)
             rdmol = AllChem.AssignBondOrdersFromTemplate(template, rdmol)
-        except ValueError:
-            print("Mismatch between PDB and SDF ligands. Determining bond types with OpenBabel...")
-            obConversion = openbabel.OBConversion()
-            obConversion.SetInAndOutFormats("pdb", "sdf")
-            obmol = openbabel.OBMol()
-            obConversion.ReadString(obmol, out.getvalue())
-            sdf_string = obConversion.WriteString(obmol)
-            sdf_stream = BytesIO(sdf_string.encode('utf-8'))
-            template = list(Chem.ForwardSDMolSupplier(sdf_stream, sanitize=True, removeHs=False))[0]
+            print(f"[INFO] Inferred ligand connectivity from the provided SDF file")
+            
+        elif ligand_name in ligand_expo:
+            print("Extracting ligand connectivity from PDB Ligand Expo")
+            smiles, expo_name = ligand_expo[ligand_name]
+            template = AllChem.MolFromSmiles(smiles)
+            template = Chem.AddHs(template)
             rdmol = AllChem.AssignBondOrdersFromTemplate(template, rdmol)
+            print(f"[INFO] Inferred ligand connectivity from the PDB Ligand Expo (name: {expo_name})")
+
+    except ValueError:
+        print("Mismatch between PDB and SDF ligands. Determining bond types with OpenBabel...")
+        obConversion = openbabel.OBConversion()
+        obConversion.SetInAndOutFormats("pdb", "sdf")
+        obmol = openbabel.OBMol()
+        obConversion.ReadString(obmol, out.getvalue())
+        sdf_string = obConversion.WriteString(obmol)
+        sdf_stream = BytesIO(sdf_string.encode('utf-8'))
+        template = list(Chem.ForwardSDMolSupplier(sdf_stream, sanitize=True, removeHs=False))[0]
+        rdmol = AllChem.AssignBondOrdersFromTemplate(template, rdmol)
+        print(f"[INFO] Inferred ligand connectivity with OpenBabel")
 
     if patched_mol2_file is not None:
         print("[WARNING] Patched mol2 file provided. It is preferred to use the automatic PDB-to-mol2 conversion. "

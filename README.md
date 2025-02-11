@@ -77,11 +77,16 @@ Finally, we must specify an output directory with the `-o` flag, in which all th
 chmod +x ./preprocess_pdb.sh
 
 # with ligand
-./preprocess_pdb.sh example/1a7x.pdb 1A7X_A -l FKA_B -s example/1a7x_C_FKA.sdf -o example/output/
+./preprocess_pdb.sh example/1a7x.pdb 1A7X_A -l FKA_B -o example/output/
 
 # without ligand
 ./preprocess_pdb.sh example/1a7x.pdb 1A7X_A -o example/output/
 ```
+
+### Known limitations
+- The ligand processing pipeline fails for some ligands. In many cases, this can be fixed by manually modifying the created mol2 file and providing it explicitly using the `-m` flag.
+- Ligands with component identifier codes longer than 3 letters are currently not supported.
+
 
 ## PyMOL plugin
 
