@@ -567,7 +567,11 @@ def align_protein(name, \
     scores = np.asarray(all_source_scores)
     
     # Filter anything below neural network score cutoff
-    top_scorers = np.where(scores[:,0] > params['nn_score_cutoff'])[0]
+    top_scorers = np.where(scores[:, 0] > params['nn_score_cutoff'])[0]
+    if 'desc_dist_score_cutoff' in params:
+        top_scorers_dds = np.where(scores[:, 1] > params['desc_dist_score_cutoff'])[0]
+        top_scorers = np.intersect1d(top_scorers, top_scorers_dds)
+
     
     if len(top_scorers) > 0:
         source_outdir = os.path.join(site_outdir, '{}'.format(ppi_pair_id))

@@ -1,4 +1,8 @@
-# _MaSIF-neosurf_ – Surface-based protein design for ternary complexes
+<h1 style="text-align: center;">
+  MaSIF-neosurf  
+  
+  _Surface-based protein design for ternary complexes_
+</h1>
 
 
 Code repository for ["Targeting protein-ligand neosurfaces with a generalizable deep learning tool"](citation.bib).
@@ -11,7 +15,8 @@ Code repository for ["Targeting protein-ligand neosurfaces with a generalizable 
 - [Method overview](#method-overview)
 - [System requirements](#system-requirements)
 - [Installation with Docker](#installation-with-docker)
-- [Preprocess a PDB file](#preprocess-a-pdb-file)
+- [Preprocessing a PDB file](#preprocessing-a-pdb-file)
+- [Running a search](#running-a-search)
 - [PyMOL plugin](#pymol-plugin)
 - [Computational binder recovery benchmark](#computational-binder-recovery-benchmark)
 - [Running a seed search](#running-a-seed-search)
@@ -61,10 +66,10 @@ docker build . -t masif-neosurf
 docker run -it -v $PWD:/home/$(basename $PWD) masif-neosurf 
 ```
 
-## Preprocess a PDB file
+## Preprocessing a PDB file
 
 Before we can search for complementary binding sites/seeds, we need to triangulate the molecular surface and compute 
-the initial surface features. The script `preprocess_pdb.sh` takes two required positional arguments: the PDB file and a 
+the initial surface features. The script `preprocess_pdb.py` takes two required positional arguments: the PDB file and a 
 definition of the chain(s) that will be included.
 If a small molecule is part of the molecular surface, we need to tell MaSIF-neosurf where to find it in the PDB file 
 (three letter code + chain) using the `-l` flag. Optionally, we can also provide an SDF file with the `-s` flag that 
@@ -74,18 +79,32 @@ Finally, we must specify an output directory with the `-o` flag, in which all th
 
 
 ```bash
-chmod +x ./preprocess_pdb.sh
-
 # with ligand
-./preprocess_pdb.sh example/1a7x.pdb 1A7X_A -l FKA_B -o example/output/
+python -W ignore preprocess_pdb.py example/4dri.pdb 4DRI_A -l RAP_A -o example/processed
 
 # without ligand
-./preprocess_pdb.sh example/1a7x.pdb 1A7X_A -o example/output/
+python -W ignore preprocess_pdb.py example/4dri.pdb 4DRI_B -o example/processed
 ```
 
 ### Known limitations
 - The ligand processing pipeline fails for some ligands. In many cases, this can be fixed by manually modifying the created mol2 file and providing it explicitly using the `-m` flag.
 - Ligands with component identifier codes longer than 3 letters are currently not supported.
+
+
+## Running a search
+
+The script `masif_search.py` performs a search against a database with already pre-processed protein surfaces.
+As an example, the command below searches for complementary surface patches against a mini database that only contains the input complex itself and its binder (make sure to run the preprocessing commands above before running the search). 
+
+```bash
+python -W ignore masif_search.py \
+    --target_dir example/processed \
+    --target 4DRI_A \
+    --resid 201 --chain A --atom_id C20 \
+    --cutoff 5.0 \
+    --database example/processed \
+    --out_dir example/search_results
+```
 
 
 ## PyMOL plugin
