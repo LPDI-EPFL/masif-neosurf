@@ -88,7 +88,7 @@ python -W ignore preprocess_pdb.py example/4dri.pdb 4DRI_B -o example/processed
 
 ### Known limitations
 - The ligand processing pipeline fails for some ligands. In many cases, this can be fixed by manually modifying the created mol2 file and providing it explicitly using the `-m` flag.
-- Ligands with component identifier codes longer than 3 letters are currently not supported.
+- To protonate ligands, `reduce` relies on a lookup file which might need to be updated in order for reduce to find the latest ligands from the PDB. To do so, use https://github.com/rlabduke/reduce/blob/master/update_het_dict.py and set the environment variable `REDUCE_HET_DICT` to the location of the updated file.
 
 
 ## Running a search

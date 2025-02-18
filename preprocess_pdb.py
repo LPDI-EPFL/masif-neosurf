@@ -1,4 +1,5 @@
 import sys
+import os
 import shutil
 from pathlib import Path
 from argparse import ArgumentParser
@@ -32,6 +33,23 @@ from masif.data.masif_site.nn_models.all_feat_3l.custom_params import custom_par
 from masif.data.masif_ppi_search.nn_models.sc05.all_feat.custom_params import custom_params as masif_search_params
 
 
+def extract_het_dict(ligand_code, in_file, out_file):
+
+    with open(in_file, "r") as f:
+        blocks = f.read().split("\n\n")
+
+    # find the relevant entry
+    block = [x for x in blocks if x.startswith(f"RESIDUE   {ligand_code}")]
+    assert len(block) == 1, f"Need to find exactly one more for ligand code {ligand_code}, found {len(block)}"
+    block = block[0]
+
+    # replace original name with three-letter code
+    block = block.replace(ligand_code, ligand_code[:3])
+
+    with open(out_file, "w") as f:
+        f.write(block)
+
+
 def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_name_chain=None, sdf_file=None, mol2_patch=None):
     # Process inputs
     pdb_id, chain_ids1 = name_chain.split("_")
@@ -39,6 +57,7 @@ def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_na
         ligand_code, ligand_chain = None, None
     else:
         ligand_code, ligand_chain = ligand_name_chain.split('_')
+    ligand_tla = ligand_code[:3]
 
     # Output locations
     pdb_chain_dir = Path(outdir, masif_opts['pdb_chain_dir'])
@@ -52,28 +71,36 @@ def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_na
 
     # Protonate structure.
     protonated_file = Path(tmp_dir, pdb_id + "_protonated.pdb")
-    protonate(pdb_filename, protonated_file)
+    if len(ligand_code) > 3:
+        # if the ligand code is too long, reduce can't find the correct entry based on the abbreviated three-letter code in the pdb file
+        # so we hack the hetero atom dictionary instead
+        with tempfile.NamedTemporaryFile() as tmp_het_dict:
+            default_het_dict = os.environ.get('REDUCE_HET_DICT')
+            extract_het_dict(ligand_code, default_het_dict, tmp_het_dict.name)
+            protonate(pdb_filename, protonated_file, het_dict=tmp_het_dict.name)
+    else:
+        protonate(pdb_filename, protonated_file)
     pdb_filename = protonated_file
 
     # Extract chains of interest.
-    extractPDB(pdb_filename, str(outfile_pdb), chain_ids1, ligand_code, ligand_chain)
+    extractPDB(pdb_filename, str(outfile_pdb), chain_ids1, ligand_tla, ligand_chain)
 
     # Compute MSMS of surface w/hydrogens,
-    vertices1, faces1, normals1, names1, areas1 = computeMSMS(outfile_pdb, protonate=True, ligand_code=ligand_code)
+    vertices1, faces1, normals1, names1, areas1 = computeMSMS(outfile_pdb, protonate=True, ligand_code=ligand_tla)
 
     # Get and RDKit molecule object
     mol2_file, rdmol = None, None
     if ligand_code is not None and ligand_chain is not None:
         mol2_file = str(Path(tmp_dir, f"{ligand_code}_{ligand_chain}.mol2").resolve())
-        rdmol = extract_ligand(pdb_filename, ligand_code, ligand_chain, mol2_file, sdf_template=sdf_file, patched_mol2_file=mol2_patch)
+        rdmol = extract_ligand(outfile_pdb, ligand_code, ligand_chain, mol2_file, sdf_template=sdf_file, patched_mol2_file=mol2_patch)
 
     # Compute "charged" vertices
     if masif_opts['use_hbond']:
-        vertex_hbond = computeCharges(str(outfile_pdb.with_suffix("")), vertices1, names1, ligand_code, rdmol)
+        vertex_hbond = computeCharges(str(outfile_pdb.with_suffix("")), vertices1, names1, ligand_tla, rdmol)
 
     # For each surface residue, assign the hydrophobicity of its amino acid. 
     if masif_opts['use_hphob']:
-        vertex_hphobicity = computeHydrophobicity(names1, ligand_code, rdmol)
+        vertex_hphobicity = computeHydrophobicity(names1, ligand_tla, rdmol)
 
     # If protonate = false, recompute MSMS of surface, but without hydrogens (set radius of hydrogens to 0).
     vertices2 = vertices1

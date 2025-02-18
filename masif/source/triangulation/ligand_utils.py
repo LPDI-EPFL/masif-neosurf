@@ -60,7 +60,8 @@ def amide_to_single_bond(mol2_outfile):
 
 def extract_ligand(pdb_file, ligand_name, ligand_chain, mol2_outfile, sdf_template=None, patched_mol2_file=None):
     pdb = prody.parsePDB(pdb_file)
-    ligand = pdb.select(f'chain {ligand_chain} and resname {ligand_name}')
+    ligand = pdb.select(f'chain {ligand_chain} and resname {ligand_name[:3]}')
+    assert ligand is not None and len(ligand) > 0, "Ligand not found"
 
     out = StringIO()
     prody.writePDBStream(out, ligand)
@@ -82,7 +83,7 @@ def extract_ligand(pdb_file, ligand_name, ligand_chain, mol2_outfile, sdf_templa
             print(f"[INFO] Inferred ligand connectivity from the PDB Ligand Expo (name: {expo_name})")
 
     except ValueError:
-        print("Mismatch between PDB and SDF ligands. Determining bond types with OpenBabel...")
+        print("Mismatch between PDB and template ligands. Determining bond types with OpenBabel...")
         obConversion = openbabel.OBConversion()
         obConversion.SetInAndOutFormats("pdb", "sdf")
         obmol = openbabel.OBMol()

@@ -10,7 +10,7 @@ from IPython.core.debugger import set_trace
 import os
 
 
-def protonate(in_pdb_file, out_pdb_file):
+def protonate(in_pdb_file, out_pdb_file, het_dict=os.environ.get('REDUCE_HET_DICT')):
     # protonate (i.e., add hydrogens) a pdb using reduce and save to an output file.
     # in_pdb_file: file to protonate.
     # out_pdb_file: output file where to save the protonated pdb file. 
@@ -24,14 +24,16 @@ def protonate(in_pdb_file, out_pdb_file):
     outfile.close()
 
     # Now add them again.
-    # args = ["reduce", "-HIS", "-DB", "/work/upcorreia/bin/reduce/reduce_wwPDB_het_dict_old.txt", out_pdb_file]
     args = ["reduce", out_pdb_file, "-HIS"]
-    het_dict = os.environ.get('REDUCE_HET_DICT')
     if het_dict is not None:
         args.extend(["-DB", het_dict])
     
     p2 = Popen(args, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p2.communicate()
+    # if "ERROR" in stderr.decode('utf-8'):
+    #     print("[REDUCE error]")
+    #     print(stderr.decode('utf-8'))
+    # print("HETDICT", het_dict)
     outfile = open(out_pdb_file, "w")
     outfile.write(stdout.decode('utf-8'))
     outfile.close()
