@@ -55,9 +55,10 @@ def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_na
     pdb_id, chain_ids1 = name_chain.split("_")
     if ligand_name_chain is None:
         ligand_code, ligand_chain = None, None
+        ligand_tla = None
     else:
         ligand_code, ligand_chain = ligand_name_chain.split('_')
-    ligand_tla = ligand_code[:3]
+        ligand_tla = ligand_code[:3]
 
     # Output locations
     pdb_chain_dir = Path(outdir, masif_opts['pdb_chain_dir'])
@@ -71,7 +72,7 @@ def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_na
 
     # Protonate structure.
     protonated_file = Path(tmp_dir, pdb_id + "_protonated.pdb")
-    if len(ligand_code) > 3:
+    if ligand_code is not None and len(ligand_code) > 3:
         # if the ligand code is too long, reduce can't find the correct entry based on the abbreviated three-letter code in the pdb file
         # so we hack the hetero atom dictionary instead
         with tempfile.NamedTemporaryFile() as tmp_het_dict:
