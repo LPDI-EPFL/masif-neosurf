@@ -8,7 +8,7 @@ from packaging import version
 import pymesh
 from scipy.spatial import cKDTree
 import numpy as np
-from Bio.PDB import PDBParser
+from Bio.PDB import PDBParser, PDBIO
 import open3d as o3d
 
 # import MaSIF modules
@@ -18,6 +18,83 @@ sys.path.append(str(Path(masif_neosurf_dir, 'masif_seed_search', 'source').resol
 from masif.source.default_config.masif_opts import masif_opts
 from masif_seed_search.source.alignment_evaluation_nn import AlignmentEvaluationNN
 from masif_seed_search.source.alignment_utils import get_patch_coords, load_protein_pcd, get_patch_geo, get_target_vix, match_descriptors, align_protein, compute_nn_score
+
+
+def parse_transform_arg(raw_transform):
+    """
+    Parse a rigid transform from either:
+    - path to .npy file containing a (4, 4) matrix (or flat 16-vector)
+    - comma-separated 16-value string in row-major order
+    """
+    path_candidate = Path(raw_transform)
+    if str(path_candidate).endswith(".npy"):
+        if not path_candidate.exists():
+            raise ValueError(f"Transform file does not exist: {path_candidate}")
+        transform = np.load(path_candidate)
+        transform_source = f"file:{path_candidate}"
+    else:
+        parts = [x.strip() for x in raw_transform.split(",") if x.strip()]
+        if len(parts) != 16:
+            raise ValueError(
+                "Inline transform must contain exactly 16 comma-separated numeric values."
+            )
+        try:
+            transform = np.asarray([float(x) for x in parts], dtype=float)
+        except ValueError as exc:
+            raise ValueError(
+                "Inline transform contains non-numeric values."
+            ) from exc
+        transform_source = "inline"
+
+    transform = np.asarray(transform, dtype=float)
+    if transform.shape == (16,):
+        transform = transform.reshape(4, 4)
+    elif transform.shape != (4, 4):
+        raise ValueError(
+            f"Transform must have shape (4, 4) or flat 16 values, got {transform.shape}."
+        )
+    if not np.all(np.isfinite(transform)):
+        raise ValueError("Transform contains non-finite values.")
+    return transform, transform_source
+
+
+def apply_transform_to_point_cloud(pcd, transform):
+    """Apply a rigid transform to point-cloud points and normals."""
+    rotation = transform[:3, :3]
+    translation = transform[:3, 3]
+
+    points = np.asarray(pcd.points)
+    normals = np.asarray(pcd.normals)
+
+    transformed_points = points @ rotation.T + translation
+    transformed_normals = normals @ rotation.T
+    normal_norm = np.linalg.norm(transformed_normals, axis=1, keepdims=True)
+    normal_norm[normal_norm < 1e-12] = 1.0
+    transformed_normals = transformed_normals / normal_norm
+
+    pcd.points = o3d.utility.Vector3dVector(transformed_points)
+    pcd.normals = o3d.utility.Vector3dVector(transformed_normals)
+
+# Helper function for writing debug PDB files to visualize the patches used for scoring
+def _write_debug_transformed_binder_pdb(source_name, source_paths, debug_dir, transform=None):
+    """Write binder PDB with optional rigid transform applied."""
+    pdb_parser = PDBParser(QUIET=True)
+    binder_pdb_path = Path(source_paths["pdb_dir"]) / f"{source_name}.pdb"
+    if not binder_pdb_path.exists():
+        print(f"Warning: binder PDB not found for debug export: {binder_pdb_path}")
+        return
+
+    binder_struct = pdb_parser.get_structure(str(binder_pdb_path), str(binder_pdb_path))
+    if transform is not None:
+        rotation = transform[:3, :3]
+        translation = transform[:3, 3]
+        for atom in binder_struct.get_atoms():
+            atom.set_coord(atom.get_coord() @ rotation.T + translation)
+
+    out_pdb = Path(debug_dir) / "binder_transformed.pdb"
+    pdb_writer = PDBIO()
+    pdb_writer.set_structure(binder_struct)
+    pdb_writer.save(str(out_pdb))
 
 
 def score_complex(
@@ -34,6 +111,15 @@ def score_complex(
     nn_score,
     flip_target_normals=True,
 ):
+    if params.get("site_debug", None) is not None:
+        site_debug_dir = Path(params["site_debug"])
+        site_debug_dir.mkdir(parents=True, exist_ok=True)
+        _write_debug_transformed_binder_pdb(
+            source_name=source_name,
+            source_paths=source_paths,
+            debug_dir=site_debug_dir,
+            transform=params.get("score_binder_transform", None),
+        )
 
     # Go through every selected site
     for site_ix, target_vix in enumerate(target_vertices):
@@ -44,6 +130,13 @@ def score_complex(
             flip_normals=flip_target_normals,
             outward_shift=params['surface_outward_shift']
         )
+        if params.get("site_debug", None) is not None:
+            site_debug_dir = Path(params["site_debug"])
+            site_debug_dir.mkdir(parents=True, exist_ok=True)
+            out_query_patch = site_debug_dir / f"site_vix_{target_vix}.vert"
+            with out_query_patch.open("w+") as out_patch:
+                for point in target_patch.points:
+                    out_patch.write('{}, {}, {}\n'.format(point[0], point[1], point[2]))
 
         # Make a ckdtree with the target vertices.
         target_ckdtree = cKDTree(target_patch.points)
@@ -57,6 +150,8 @@ def score_complex(
             chain = source_name.split('_')[2]
             chain_number = 2
         source_pcd, source_desc, source_iface = load_protein_pcd(source_name, chain_number, source_paths, flipped_features=False, read_mesh=False)
+        if params.get("score_binder_transform", None) is not None:
+            apply_transform_to_point_cloud(source_pcd, params["score_binder_transform"])
 
 
         # Find closest point on binder
@@ -71,6 +166,13 @@ def score_complex(
         # Compute NN and descriptor distance scores
         source_coord = get_patch_coords(params['seed_precomp_dir'], source_name, pid, cv=[source_vix])
         source_patch, source_patch_descs, source_patch_idx = get_patch_geo(source_pcd, source_coord, source_vix, source_desc, outward_shift=params['surface_outward_shift'])
+        if params.get("site_debug", None) is not None:
+            site_debug_dir = Path(params["site_debug"])
+            site_debug_dir.mkdir(parents=True, exist_ok=True)
+            out_binder_patch = site_debug_dir / f"binder_vix_{source_vix}.vert"
+            with out_binder_patch.open("w+") as out_patch:
+                for point in source_patch.points:
+                    out_patch.write('{}, {}, {}\n'.format(point[0], point[1], point[2]))
         d_vi_at, _= target_pcd_tree.query(np.asarray(source_patch.points), k=1)
 
         align_scores, _ = compute_nn_score(
@@ -139,6 +241,7 @@ def masif_search(params):
     source_paths['surf_dir'] = params['seed_surf_dir']
     source_paths['iface_dir'] = params['seed_iface_dir']
     source_paths['desc_dir'] = params['seed_desc_dir']
+    source_paths['pdb_dir'] = params['seed_pdb_dir']
 
     # Load the target point cloud, descriptors, interface and mesh.
     target_pcd, target_desc, target_iface, target_mesh = load_protein_pcd(target_ppi_pair_id, target_chain_ix, target_paths, flipped_features=flip_target_features, read_mesh=True)
@@ -199,6 +302,17 @@ def masif_search(params):
         else:
             # Get a target vertex for every target site.
             target_vertices = get_target_vix(target_coord, iface, num_sites=params['num_sites'])
+
+    if params.get("score_binder_transform", None) is not None:
+        det_rotation = np.linalg.det(params["score_binder_transform"][:3, :3])
+        tnorm = np.linalg.norm(params["score_binder_transform"][:3, 3])
+        print(
+            "Using --transform from {} (det(R)={:.6f}, |t|={:.3f})".format(
+                params.get("score_binder_transform_source", "unknown"),
+                det_rotation,
+                tnorm,
+            )
+        )
 
     if params.get('score_binder', None) is not None:
         score_complex(
@@ -324,8 +438,38 @@ if __name__ == "__main__":
     parser.add_argument("--n_retry_alignment", type=int, default=1)
     parser.add_argument("--sim", dest="similarity_mode", action="store_true")
     parser.add_argument("--score_binder", type=str, default=None, help="Specify a name of a processed protein to score it without alignment.")
+    parser.add_argument(
+        "--site_debug",
+        type=Path,
+        default=None,
+        help="Write score-only query/binder patch .vert files into this directory.",
+    )
+    parser.add_argument(
+        "--transform",
+        type=str,
+        default=None,
+        help=(
+            "Rigid transform for --score_binder. "
+            "Accepted formats: path to .npy file (4x4 or 16 values) "
+            "or inline comma-separated 16-value row-major string."
+        ),
+    )
     parser.add_argument("--random_seed", type=int, default=None)
     args = parser.parse_args()
+    if args.site_debug is not None and args.score_binder is None:
+        parser.error("--site_debug is only supported together with --score_binder.")
+    if args.transform is not None and args.score_binder is None:
+        parser.error("--transform is only supported together with --score_binder.")
+    if args.transform is not None:
+        try:
+            transform, transform_source = parse_transform_arg(args.transform)
+        except ValueError as exc:
+            parser.error(str(exc))
+        args.score_binder_transform = transform
+        args.score_binder_transform_source = transform_source
+    else:
+        args.score_binder_transform = None
+        args.score_binder_transform_source = None
 
     if args.random_seed is not None:
         assert version.parse('0.14.1') <= version.parse(o3d.__version__) <= version.parse('0.15.2'), "Random seed not supported by all Open3D versions"
