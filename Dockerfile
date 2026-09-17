@@ -2,6 +2,12 @@
 #FROM pymesh/pymesh
 FROM --platform=linux/amd64 pymesh/pymesh
 
+# Debian buster is EOL and its packages moved to archive.debian.org, so the
+# apt-get update below fails with 404s on a fresh build (issue #23).
+RUN sed -i 's|deb.debian.org|archive.debian.org|g' /etc/apt/sources.list
+RUN sed -i 's|security.debian.org|archive.debian.org|g' /etc/apt/sources.list
+RUN sed -i '/buster-updates/d' /etc/apt/sources.list
+
 # install necessary dependencies
 RUN apt-get update && \
 	apt-get install -y wget git unzip cmake vim libgl1-mesa-glx dssp
